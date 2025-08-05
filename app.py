@@ -102,24 +102,80 @@ def load_trained_model():
 def train_model_if_needed():
     """Train the model if it doesn't exist - WITH UI ELEMENTS"""
     try:
-        # Import and run training directly
+        st.info("🚀 Starting model training... Please wait.")
+        
+        # Create a progress bar
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # Step 1: Validate dataset
+        status_text.text("Step 1/5: Validating dataset...")
+        progress_bar.progress(10)
+        
+        # Check if dataset exists and is valid
+        if not os.path.exists('pps1.csv'):
+            st.error("❌ Dataset file 'pps1.csv' not found!")
+            return
+        
+        # Quick dataset validation
+        try:
+            test_data = pd.read_csv('pps1.csv')
+            required_columns = ['Age', 'Category', 'Purchase Amount (USD)', 'Season', 'Review Rating', 'Previous Purchases', 'Subscription Status']
+            missing_columns = [col for col in required_columns if col not in test_data.columns]
+            
+            if missing_columns:
+                st.error(f"❌ Dataset missing required columns: {missing_columns}")
+                return
+                
+            st.success(f"✅ Dataset validated: {len(test_data)} records found")
+            
+        except Exception as e:
+            st.error(f"❌ Dataset validation failed: {str(e)}")
+            return
+        
+        # Import training function
+        status_text.text("Step 2/5: Loading training modules...")
+        progress_bar.progress(20)
+        
         import sys
         sys.path.append('.')
         from train_model import train_and_save_model
         
-        # Train the model
-        with st.spinner("Training model... This may take a few minutes."):
-            model_data = train_and_save_model()
+        status_text.text("Step 3/5: Preprocessing data...")
+        progress_bar.progress(40)
+        
+        # Train the model with progress updates
+        status_text.text("Step 4/5: Training Random Forest model...")
+        progress_bar.progress(60)
+        
+        model_data = train_and_save_model()
+        
+        status_text.text("Step 5/5: Saving model...")
+        progress_bar.progress(100)
         
         if model_data:
-            st.success("✅ Model trained successfully! Refreshing page...")
+            st.success("✅ Model trained successfully!")
+            st.info(f"🎯 **Model Performance**: {model_data['metrics']['accuracy']:.1%} accuracy")
+            st.balloons()  # Celebration animation
+            
+            # Clear cache to reload the model
+            load_trained_model.clear()
+            
+            st.info("🔄 Refreshing page to load the trained model...")
             st.rerun()
         else:
-            st.error("❌ Model training failed.")
+            st.error("❌ Model training failed - no model data returned.")
             
+    except ImportError as e:
+        st.error(f"❌ Import error: {str(e)}")
+        st.info("There might be an issue with the training module. Please check the logs.")
     except Exception as e:
         st.error(f"❌ Training error: {str(e)}")
-        st.info("Please check that all dependencies are installed correctly.")
+        st.info("Please try again. If the problem persists, there might be an issue with the dataset or dependencies.")
+        
+        # Show debug information
+        with st.expander("🔍 Debug Information"):
+            st.code(f"Error type: {type(e).__name__}\nError message: {str(e)}")
 
 def create_metrics_dashboard(metrics):
     """Create a metrics dashboard"""
