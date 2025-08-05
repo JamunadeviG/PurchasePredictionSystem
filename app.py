@@ -214,40 +214,58 @@ def create_metrics_dashboard(metrics):
         """, unsafe_allow_html=True)
 
 def create_prediction_charts(data):
-    """Create visualization charts"""
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Category distribution
-        fig1 = px.histogram(
-            data, 
-            x='Category', 
-            color='Subscription Status',
-            title="Subscription Status by Category",
-            color_discrete_map={0: '#ff7f7f', 1: '#7fbf7f'}
-        )
-        fig1.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#333333')
-        )
-        st.plotly_chart(fig1, use_container_width=True)
-    
-    with col2:
-        # Season distribution
-        fig2 = px.histogram(
-            data, 
-            x='Season', 
-            color='Subscription Status',
-            title="Subscription Status by Season",
-            color_discrete_map={0: '#ff7f7f', 1: '#7fbf7f'}
-        )
-        fig2.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#333333')
-        )
-        st.plotly_chart(fig2, use_container_width=True)
+    """Create visualization charts with proper data type handling"""
+    try:
+        # Ensure proper data types to avoid PyArrow issues
+        data_clean = data.copy()
+        
+        # Convert categorical columns to string type
+        categorical_cols = ['Category', 'Season']
+        for col in categorical_cols:
+            if col in data_clean.columns:
+                data_clean[col] = data_clean[col].astype(str)
+        
+        # Ensure Subscription Status is numeric
+        if 'Subscription Status' in data_clean.columns:
+            data_clean['Subscription Status'] = pd.to_numeric(data_clean['Subscription Status'], errors='coerce')
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Category distribution
+            fig1 = px.histogram(
+                data_clean, 
+                x='Category', 
+                color='Subscription Status',
+                title="Subscription Status by Category",
+                color_discrete_map={0: '#ff7f7f', 1: '#7fbf7f'}
+            )
+            fig1.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#333333')
+            )
+            st.plotly_chart(fig1, use_container_width=True)
+        
+        with col2:
+            # Season distribution
+            fig2 = px.histogram(
+                data_clean, 
+                x='Season', 
+                color='Subscription Status',
+                title="Subscription Status by Season",
+                color_discrete_map={0: '#ff7f7f', 1: '#7fbf7f'}
+            )
+            fig2.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#333333')
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+            
+    except Exception as e:
+        st.warning(f"⚠️ Could not create charts: {str(e)}")
+        st.info("Charts will be available after model training completes.")
 
 def main():
     # Header
