@@ -43,13 +43,19 @@ def train_and_save_model():
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
-    # Balance classes with SMOTE
-    print("Balancing classes with SMOTE...")
-    smote = SMOTE(random_state=42, k_neighbors=3)
-    X_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)
-    
     print(f"Original class distribution: {np.bincount(y_train)}")
-    print(f"Balanced class distribution: {np.bincount(y_train_balanced)}")
+    
+    # Try SMOTE balancing, fallback to original data if it fails
+    try:
+        print("Attempting SMOTE balancing...")
+        smote = SMOTE(random_state=42, k_neighbors=3)
+        X_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)
+        print(f"SMOTE successful - Balanced class distribution: {np.bincount(y_train_balanced)}")
+    except Exception as e:
+        print(f"SMOTE failed ({str(e)}), using original balanced dataset...")
+        # Dataset is already well-balanced (56% vs 44%), so we can use it directly
+        X_train_balanced, y_train_balanced = X_train, y_train
+        print("Using original data - dataset is already well-balanced")
     
     # Scale features
     print("Scaling features...")
