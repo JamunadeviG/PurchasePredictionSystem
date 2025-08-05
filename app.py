@@ -85,17 +85,39 @@ def load_trained_model():
     try:
         # Check if trained model exists
         if not os.path.exists('trained_model.pkl'):
-            st.error("❌ Trained model not found. Please run 'python train_model.py' first to train the model.")
-            st.info("💡 Click the button below to train the model now:")
-            if st.button("🚀 Train Model Now"):
+            st.error("❌ Trained model not found.")
+            st.info("💡 **For Streamlit Cloud Deployment**: The model needs to be trained first.")
+            
+            # Show instructions for different deployment scenarios
+            with st.expander("🛠️ Setup Instructions"):
+                st.markdown("""
+                **If running locally:**
+                1. Run `python train_model.py` in your terminal
+                2. Refresh this page
+                
+                **If on Streamlit Cloud:**
+                The model will be trained automatically when you click the button below.
+                """)
+            
+            if st.button("🚀 Train Model Now", help="This will train the model (may take 2-3 minutes)"):
                 with st.spinner("Training model... This may take a few minutes."):
-                    import subprocess
-                    result = subprocess.run(['python', 'train_model.py'], capture_output=True, text=True)
-                    if result.returncode == 0:
-                        st.success("✅ Model trained successfully! Please refresh the page.")
-                        st.experimental_rerun()
-                    else:
-                        st.error(f"❌ Training failed: {result.stderr}")
+                    try:
+                        # Import and run training directly
+                        import sys
+                        sys.path.append('.')
+                        from train_model import train_and_save_model
+                        
+                        # Train the model
+                        model_data = train_and_save_model()
+                        
+                        if model_data:
+                            st.success("✅ Model trained successfully! Refreshing page...")
+                            st.rerun()
+                        else:
+                            st.error("❌ Model training failed.")
+                    except Exception as e:
+                        st.error(f"❌ Training error: {str(e)}")
+                        st.info("Please check that all dependencies are installed correctly.")
             return None
         
         # Load the trained model
