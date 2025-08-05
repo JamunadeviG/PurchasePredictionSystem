@@ -81,48 +81,14 @@ st.markdown("""
 
 @st.cache_data
 def load_trained_model():
-    """Load the pre-trained model and preprocessing objects"""
+    """Load the pre-trained model and preprocessing objects - NO UI ELEMENTS"""
     try:
         # Check if trained model exists
         if not os.path.exists('trained_model.pkl'):
-            st.error("❌ Trained model not found.")
-            st.info("💡 **For Streamlit Cloud Deployment**: The model needs to be trained first.")
-            
-            # Show instructions for different deployment scenarios
-            with st.expander("🛠️ Setup Instructions"):
-                st.markdown("""
-                **If running locally:**
-                1. Run `python train_model.py` in your terminal
-                2. Refresh this page
-                
-                **If on Streamlit Cloud:**
-                The model will be trained automatically when you click the button below.
-                """)
-            
-            if st.button("🚀 Train Model Now", help="This will train the model (may take 2-3 minutes)"):
-                with st.spinner("Training model... This may take a few minutes."):
-                    try:
-                        # Import and run training directly
-                        import sys
-                        sys.path.append('.')
-                        from train_model import train_and_save_model
-                        
-                        # Train the model
-                        model_data = train_and_save_model()
-                        
-                        if model_data:
-                            st.success("✅ Model trained successfully! Refreshing page...")
-                            st.rerun()
-                        else:
-                            st.error("❌ Model training failed.")
-                    except Exception as e:
-                        st.error(f"❌ Training error: {str(e)}")
-                        st.info("Please check that all dependencies are installed correctly.")
-            return None
+            return None  # Return None if model doesn't exist
         
         # Load the trained model
-        with st.spinner("Loading trained model..."):
-            model_data = joblib.load('trained_model.pkl')
+        model_data = joblib.load('trained_model.pkl')
         
         # Load original data for UI dropdowns
         original_data = pd.read_csv('pps1.csv')
@@ -130,12 +96,30 @@ def load_trained_model():
         
         return model_data
         
-    except FileNotFoundError:
-        st.error("❌ Dataset file 'pps1.csv' not found. Please ensure the file is in the same directory.")
-        return None
     except Exception as e:
-        st.error(f"❌ Error loading model: {str(e)}")
-        return None
+        return None  # Return None on any error
+
+def train_model_if_needed():
+    """Train the model if it doesn't exist - WITH UI ELEMENTS"""
+    try:
+        # Import and run training directly
+        import sys
+        sys.path.append('.')
+        from train_model import train_and_save_model
+        
+        # Train the model
+        with st.spinner("Training model... This may take a few minutes."):
+            model_data = train_and_save_model()
+        
+        if model_data:
+            st.success("✅ Model trained successfully! Refreshing page...")
+            st.rerun()
+        else:
+            st.error("❌ Model training failed.")
+            
+    except Exception as e:
+        st.error(f"❌ Training error: {str(e)}")
+        st.info("Please check that all dependencies are installed correctly.")
 
 def create_metrics_dashboard(metrics):
     """Create a metrics dashboard"""
@@ -217,7 +201,25 @@ def main():
     # Load pre-trained model
     model_data = load_trained_model()
     
+    # Handle case where model doesn't exist
     if model_data is None:
+        st.error("❌ Trained model not found.")
+        st.info("💡 **For Streamlit Cloud Deployment**: The model needs to be trained first.")
+        
+        # Show instructions for different deployment scenarios
+        with st.expander("🛠️ Setup Instructions"):
+            st.markdown("""
+            **If running locally:**
+            1. Run `python train_model.py` in your terminal
+            2. Refresh this page
+            
+            **If on Streamlit Cloud:**
+            The model will be trained automatically when you click the button below.
+            """)
+        
+        if st.button("🚀 Train Model Now", help="This will train the model (may take 2-3 minutes)"):
+            train_model_if_needed()
+        
         st.stop()
     
     # Sidebar for input
